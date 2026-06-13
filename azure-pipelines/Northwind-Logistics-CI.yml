@@ -1,0 +1,30 @@
+---
+trigger:
+  branches:
+    include:
+    - main
+    - develop
+pool:
+  vmImage: ubuntu-latest
+variables:
+- group: northwind-logistics-config
+steps:
+- task: Gradle@3
+  inputs:
+    gradleWrapperFile: gradlew
+    tasks: clean build
+    publishJUnitResults: true
+- task: DownloadSecureFile@1
+  name: keystore
+  inputs:
+    secureFile: northwind-release.keystore
+- task: SnykSecurityScan@1
+  inputs:
+    serviceConnectionEndpoint: snyk-northwind
+    testType: app
+- script: "./gradlew bootJar"
+  displayName: Package
+- task: PublishPipelineArtifact@1
+  inputs:
+    targetPath: build/libs
+    artifact: jar
