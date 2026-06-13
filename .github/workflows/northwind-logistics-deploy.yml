@@ -1,0 +1,42 @@
+name: Northwind-Logistics/Northwind-Logistics-Deploy
+on:
+  workflow_dispatch:
+jobs:
+  rollout:
+    runs-on: ubuntu-latest
+    environment:
+      name: northwind-production
+    if: github.RUN_NUMBER == 1
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: download artifact
+      uses: actions/download-artifact@v4.1.0
+#     # This item has no matching transformer
+#     - task: KubernetesManifest@1
+#       inputs:
+#         action: deploy
+#         kubernetesServiceConnection: northwind-aks-prod
+#         manifests: k8s/deployment.yaml
+    - uses: azure/k8s-set-context@v3.0
+      with:
+        method: service-account
+        k8s-url: "${{ secrets.K8S_URL }}"
+        k8s-secret: "${{ secrets.K8S_SECRET }}"
+    - shell: bash
+      run: helm upgrade --install --wait ${{ github.run_number }} northwind/logistics
+
+# ──────────────────────────────────────────────────────────────────────
+# bifrost: gap-fills below — REVIEW BEFORE USE
+# Everything above this banner is GitHub Actions Importer output.
+# Everything below is LLM-proposed YAML for constructs the Importer could
+# not convert. Each block is tagged with its source construct + prompt id.
+# ──────────────────────────────────────────────────────────────────────
+
+# bifrost-gap-fill: KubernetesManifest@1 (prompt: gap-fill.v1)
+    - name: deploy
+      uses: azure/k8s-deploy@v5
+      with:
+        action: deploy
+        manifests: |
+          k8s/deployment.yaml
