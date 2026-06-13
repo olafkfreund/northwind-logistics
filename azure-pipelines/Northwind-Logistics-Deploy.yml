@@ -1,0 +1,26 @@
+---
+trigger: none
+pool:
+  name: northwind-self-hosted
+variables:
+- group: northwind-logistics-config
+stages:
+- stage: DeployK8s
+  jobs:
+  - deployment: rollout
+    environment: northwind-production
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: KubernetesManifest@1
+            inputs:
+              action: deploy
+              kubernetesServiceConnection: northwind-aks-prod
+              manifests: k8s/deployment.yaml
+          - task: HelmDeploy@0
+            inputs:
+              connectionType: Kubernetes Service Connection
+              kubernetesServiceConnection: northwind-aks-prod
+              command: upgrade
+              chartName: northwind/logistics
