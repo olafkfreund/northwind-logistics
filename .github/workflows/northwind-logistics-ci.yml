@@ -1,0 +1,66 @@
+name: Northwind-Logistics/Northwind-Logistics-CI
+on:
+  push:
+    branches:
+    - main
+    - develop
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+#     # This item has no matching transformer
+#     - task: Gradle@3
+#       inputs:
+#         gradleWrapperFile: gradlew
+#         tasks: clean build
+#         publishJUnitResults: true
+#     # This item has no matching transformer
+#     - task: DownloadSecureFile@1
+#       name: keystore
+#       inputs:
+#         secureFile: northwind-release.keystore
+#     # This item has no matching transformer
+#     - task: SnykSecurityScan@1
+#       inputs:
+#         serviceConnectionEndpoint: snyk-northwind
+#         testType: app
+    - name: Package
+      run: "./gradlew bootJar"
+    - uses: actions/upload-artifact@v4.1.0
+      with:
+        name: jar
+        path: build/libs
+
+# ──────────────────────────────────────────────────────────────────────
+# bifrost: gap-fills below — REVIEW BEFORE USE
+# Everything above this banner is GitHub Actions Importer output.
+# Everything below is LLM-proposed YAML for constructs the Importer could
+# not convert. Each block is tagged with its source construct + prompt id.
+# ──────────────────────────────────────────────────────────────────────
+
+# bifrost-gap-fill: Gradle@3 (prompt: gap-fill.v1)
+    - name: Build with Gradle
+      run: ./gradlew clean build
+    - name: Publish JUnit test results
+      if: always()
+      uses: EnricoMi/publish-unit-test-result-action@v2
+      with:
+        junit_files: '**/build/test-results/**/*.xml'
+
+# bifrost-gap-fill: DownloadSecureFile@1 (prompt: gap-fill.v1)
+    - name: keystore
+      env:
+        KEYSTORE_BASE64: ${{ secrets.NORTHWIND_RELEASE_KEYSTORE }}
+      run: |
+        echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/northwind-release.keystore"
+        echo "KEYSTORE_SECUREFILEPATH=$RUNNER_TEMP/northwind-release.keystore" >> "$GITHUB_ENV"
+
+# bifrost-gap-fill: SnykSecurityScan@1 (prompt: gap-fill.v1)
+    - name: Snyk Security Scan
+      uses: snyk/actions/gradle@master
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        command: test
